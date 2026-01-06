@@ -1,8 +1,8 @@
 import {
+  Input,
   type Store,
+  useFormStore,
   useSelector,
-  useStore,
-  useStoreInput,
 } from "dn-react-input";
 import { useEffect } from "react";
 
@@ -26,7 +26,7 @@ type FormState = {
 };
 
 export default function App() {
-  const store = useStore<FormState>({
+  const store = useFormStore<FormState>({
     render: 0,
     role: "user",
     email: "ohjinsu98@icloud.com",
@@ -45,27 +45,22 @@ export default function App() {
     name: ["oh", "jinsu"],
   });
 
-  const storeInput = useStoreInput(store);
-
   const submit = async () => {
-    const state = store.state;
-
     const res = await fetch("/api/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email: state.email,
-        password: state.password,
+        email: store.state.email,
+        password: store.state.password,
       }),
     });
 
     if (!res.ok) {
-      store.dispatch((state) => {
-        state.description = "로그인에 실패했습니다.";
-
-        state.agree = false;
+      store.dispatch({
+        description: "로그인에 실패했습니다.",
+        agree: false,
       });
     }
   };
@@ -84,45 +79,38 @@ export default function App() {
         submit();
       }}
     >
-      <storeInput.input type="email" name="email" />
-      <storeInput.input type="password" name="password" />
-      <storeInput.input type="password" name="passwordConfirm" />
-      <storeInput.select name="role">
+      <store.input type="email" name="email" />
+      <store.input type="password" name="password" />
+      <store.input type="password" name="passwordConfirm" />
+      <store.select name="role">
         <option value="">선택하세요</option>
         <option value="admin">관리자</option>
         <option value="user">이용자</option>
-      </storeInput.select>
-      <storeInput.input
+      </store.select>
+      <store.input
         type="text"
         name="name"
         placeholder="lastName"
-        stringify={(value) => value[0]}
-        dispatch={(state, value) => {
-          state[0] = value;
-        }}
       />
-      <storeInput.input
+      <store.input
         type="text"
         name="name"
         placeholder="firstName"
-        stringify={(value) => value[1]}
-        dispatch={(state, value) => {
-          state[1] = value;
-        }}
       />
-      <storeInput.input type="checkbox" name="agree" />
-      <storeInput.input type="radio" name="role" value="admin" />
-      <storeInput.input type="radio" name="role" value="user" />
-      <storeInput.input type="date" name="date" />
-      <storeInput.input type="time" name="time" />
-      <storeInput.input type="datetime-local" name="createdAt" />
-      <storeInput.input type="number" name="render" />
-      <storeInput.input type="color" name="favoriteColor" />
-      <storeInput.input type="week" name="week" />
-      <storeInput.input type="month" name="month" />
-      <storeInput.input type="search" name="search" />
-      <storeInput.input type="range" name="range" />
-      <storeInput.textarea name="description" />
+      <Input store={store} name="render" />
+      <store.input type="checkbox" name="agree" />
+      <store.input type="radio" name="role" value="admin" />
+      <store.input type="radio" name="role" value="user" />
+      <store.input type="date" name="date" />
+      <store.input type="time" name="time" />
+      <store.input type="datetime-local" name="createdAt" />
+      <store.input type="number" name="render" />
+      <store.input type="color" name="favoriteColor" />
+      <store.input type="week" name="week" />
+      <store.input type="month" name="month" />
+      <store.input type="search" name="search" />
+      <store.input type="range" name="range" />
+      <store.textarea name="description" />
       <ToggleSwitch store={store} />
       <button type="submit">Submit</button>
       <StatePreview store={store} />

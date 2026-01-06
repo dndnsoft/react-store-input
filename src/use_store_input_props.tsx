@@ -1,5 +1,7 @@
 import {
   useEffect,
+  useId,
+  useMemo,
   useRef,
   type ChangeEventHandler,
   type HTMLInputTypeAttribute,
@@ -9,69 +11,53 @@ import { format } from "date-fns";
 
 type InputType = HTMLInputTypeAttribute;
 
-export function useStoreInputProps<TElement, T>(
-  store: Store<T>,
-  props: {
-    name: keyof T;
-    type?: InputType;
-    defaultValue?: string | number | readonly string[];
-    defaultChecked?: boolean;
-    onChange?: ChangeEventHandler<TElement>;
-  }
+type InputProps<TElement, TState> = {
+  name: keyof TState;
+  type?: InputType;
+  defaultValue?: string | number | readonly string[];
+  value?: string | number | readonly string[];
+  defaultChecked?: boolean;
+  onChange?: ChangeEventHandler<TElement>;
+}
+
+export function useStoreInputProps<TElement, TState>(
+  store: Store<TState>,
+  props: InputProps<TElement, TState>
 ) {
   const toInputValue = (
     value: unknown,
-    {
-      type,
-    }: {
-      type?: InputType;
-    }
   ) => {
     if (value === undefined || value === null) {
       return "";
     }
 
-    if (type === "number" || type === "range") {
-      return Number.isNaN(value) ? "" : String(value);
-    }
-
-    if (type === "datetime-local") {
+    if (props.type === "datetime-local") {
       if (value instanceof Date) {
         return format(value, "yyyy-MM-dd'T'HH:mm:ss");
+      }
+
+      if (typeof value === "string") {
+        return toInputValue(new Date(value));
       }
     }
 
     return String(value);
   };
 
-  const getDefaultValue = ({
-    defaultValue,
-    name,
-    type,
-  }: {
-    defaultValue?: string | number | readonly string[];
-    name: keyof T;
-    type?: InputType;
-  }) => {
-    if (defaultValue !== undefined) {
-      return defaultValue;
+  const getDefaultValue = () => {
+    if (props.defaultValue !== undefined) {
+      return props.defaultValue;
     }
 
-    if (type === "checkbox" || type === "radio") {
+    if (props.type === "checkbox" || props.type === "radio") {
       return undefined;
     }
 
-    return toInputValue(store.state[name], {
-      type,
-    });
+    return toInputValue(store.state[props.name]);
   };
 
   const toInputChecked = (
     value: unknown,
-    props: {
-      type?: InputType;
-      value?: string | number | readonly string[];
-    }
   ) => {
     if (props.type === "radio") {
       return value !== undefined && value === props.value;
@@ -80,114 +66,108 @@ export function useStoreInputProps<TElement, T>(
     return Boolean(value);
   };
 
-  const getDefaultChecked = ({
-    defaultChecked,
-    name,
-    type,
-    value,
-  }: {
-    defaultChecked?: boolean;
-    name: keyof T;
-    type?: InputType;
-    value?: string | number | readonly string[];
-  }) => {
-    if (defaultChecked) {
-      return defaultChecked;
+  const getDefaultChecked = () => {
+    if (props.defaultChecked) {
+      return props.defaultChecked;
     }
 
-    if (type !== "checkbox" && type !== "radio") {
+    if (props.type !== "checkbox" && props.type !== "radio") {
       return undefined;
     }
 
-    return toInputChecked(store.state[name], { type, value });
+    return toInputChecked(store.state[props.name]);
   };
 
-  function useSubscriptionRef<TElement>({
-    name,
-    type,
-  }: {
-    name: keyof T;
-    type?: InputType;
-  }) {
+  function useSubscriptionRef<TElement>() {
     const ref = useRef<TElement>(null);
 
     useEffect(() => {
-      return store.subscribe((state) => {
+      return store.subscribe((state, key) => {
+        if (key === dispatchKey) {
+          return;
+        }
+
         const input = ref.current as unknown as HTMLInputElement;
 
         if (!input) {
           return;
         }
 
-        if (type === "checkbox" || type === "radio") {
-          input.checked = toInputChecked(state[name as never], {
-            type,
-            value: input.value,
-          });
+        if (props.type === "checkbox" || props.type === "radio") {
+          const checked = toInputChecked(state[props.name as never])
+
+          if (input.checked === checked) {
+            return;
+          }
+
+          input.checked = checked;
         } else {
-          input.value = toInputValue(state[name as never], {
-            type,
-          });
+          const value = toInputValue(state[props.name as never]);
+
+          if (input.value === value) {
+            return;
+          }
+
+          input.value = value;
         }
+
+        const event = new Event("input", { bubbles: true });
+
+        input.dispatchEvent(event);
       });
     }, []);
 
     return ref;
   }
 
-  function toStateValue(value: string, { type }: { type?: InputType }) {
-    if (type === "number" || type === "range") {
-      const parsed = parseFloat(value);
-      return isNaN(parsed) ? 0 : parsed;
+  function toStateValue(value: string) {
+    if (typeof store.state[props.name] === "number") {
+      return Number(value);
     }
 
-    if (type === "datetime-local") {
-      const parsed = new Date(value);
-      return isNaN(parsed.getTime()) ? new Date() : parsed;
+    if (store.state[props.name] instanceof Date) {
+      return new Date(value)
     }
 
     return value;
   }
 
-  function createChangeEventHandler<TElement>({
-    name,
-    type,
-    onChange,
-  }: {
-    name: keyof T;
-    type?: InputType;
-    onChange?: ChangeEventHandler<TElement>;
-  }): ChangeEventHandler<TElement> {
+  function createChangeEventHandler(): ChangeEventHandler<TElement> {
     return (e) => {
       const target = e.target as unknown as HTMLInputElement;
 
-      if (type === "checkbox") {
+      if (props.type === "checkbox") {
         store.dispatch((state) => {
-          state[name] = target.checked as never;
+          state[props.name] = target.checked as never;
+        }, {
+          key: dispatchKey
         });
       } else {
         store.dispatch((state) => {
-          state[name] = toStateValue(target.value, {
-            type,
-          }) as never;
+          state[props.name] = toStateValue(target.value) as never;
+        }, {
+          key: dispatchKey
         });
       }
 
-      onChange?.(e);
+      props.onChange?.(e);
     };
   }
 
-  const ref = useSubscriptionRef<TElement>(props);
+  const dispatchKey = useId();
+
+  const ref = useSubscriptionRef<TElement>();
 
   const name = String(props.name);
 
-  const defaultValue = getDefaultValue(props);
+  const defaultValue = getDefaultValue();
 
-  const defaultChecked = getDefaultChecked(props);
+  const defaultChecked = getDefaultChecked();
 
-  const onChange = createChangeEventHandler<TElement>(props);
+  const onChange = createChangeEventHandler();
 
   return {
+    key: dispatchKey,
     ref,
     name,
     defaultValue,

@@ -1,33 +1,48 @@
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import { produce } from "immer";
 
-export type Store<T> = ReturnType<typeof useStore<T>>;
+export type Store<TState> = ReturnType<typeof useStore<TState>>;
 
-export function useStore<T>(initialState: T) {
-  const stateRef = useRef<T>(initialState);
+type DispatchOptions = {
+  key?: string;
+};
 
-  const subscribers = useMemo<((state: T) => void)[]>(() => [], []);
+type Subscriber<TState> = (state: TState, key?: string) => void;
 
-  const dispatch = (recipe: (draft: T) => void) => {
-    stateRef.current = produce(stateRef.current, recipe);
+export function useStore<TState>(initialState: TState) {
+  const stateRef = useRef<TState>(initialState);
 
-    notify();
+  const subscribers = useRef<Subscriber<TState>[]>([]);
+
+  const dispatch = (recipe: Partial<TState> | ((draft: TState) => void), options: DispatchOptions = {}) => {
+    if (typeof recipe === "function") {
+      stateRef.current = produce(stateRef.current, recipe);
+    } else {
+      stateRef.current = produce(stateRef.current, (draft) => {
+        for (const key in recipe) {
+          (draft as any)[key] = recipe[key as keyof TState];
+        }
+      }
+      );
+    }
+
+    notify(options.key);
   };
 
-  const subscribe = (listener: (state: T) => void) => {
-    subscribers.push(listener);
+  const subscribe = (subscriber: Subscriber<TState>) => {
+    subscribers.current.push(subscriber);
 
     return () => {
-      const index = subscribers.indexOf(listener);
+      const index = subscribers.current.indexOf(subscriber);
       if (index !== -1) {
-        subscribers.splice(index, 1);
+        subscribers.current.splice(index, 1);
       }
     };
   };
 
-  const notify = () => {
-    for (const listener of subscribers) {
-      listener(stateRef.current);
+  const notify = (key?: string) => {
+    for (const listener of subscribers.current) {
+      listener(stateRef.current, key);
     }
   };
 
