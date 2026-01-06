@@ -1,4 +1,4 @@
-import { createRender, type CreateRender } from "./create_render";
+import { createRenderWithStore, type CreateRender } from "./create_render";
 import { useStore, type Store } from "./use_store";
 import { useStoreInput } from "./use_store_input";
 
@@ -18,7 +18,7 @@ export function useFormStore<TState>(initialState: TState): FormStore<TState> {
         },
         dispatch: store.dispatch,
         subscribe: store.subscribe,
-        render: createRender<TState>(store),
+        render: createRenderWithStore<TState>(store),
         ...storeInput,
     };
 }

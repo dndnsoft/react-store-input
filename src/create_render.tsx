@@ -8,6 +8,22 @@ export type CreateRender<TState> = (
 ) => ReactNode;
 
 export function createRender<TState>(
+    store: Store<TState>,
+    selector: (state: TState) => ReactNode,
+    compare?: (a: TState, b: TState) => boolean
+) {
+    function Component() {
+        const result = useSelector(store, (state) => state, compare);
+
+        const content = selector(result);
+
+        return <>{content}</>;
+    }
+
+    return <Component />;
+}
+
+export function createRenderWithStore<TState>(
     store: Store<TState>
 ): CreateRender<TState> {
     return function createRender(selector, compare) {
