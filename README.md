@@ -14,29 +14,29 @@ This is a simple example of how to use this package.
 import { useFormStore } from "dn-react-input";
 
 export default function App() {
-    const store = useFormStore({
-        email: "",
-        password: "",
-    });
+  const store = useFormStore({
+    email: "",
+    password: "",
+  });
 
-    const submit = async () => {
-        const { email, password } = store.state;
+  const submit = async () => {
+    const { email, password } = store.state;
 
-        alert(`Email: ${email}\nPassword: ${password}`);
-    };
+    alert(`Email: ${email}\nPassword: ${password}`);
+  };
 
-    return (
-        <form
-            onSubmit={(e) => {
-                e.preventDefault();
-                submit();
-            }}
-        >
-            <store.input name="email" type="email" />
-            <store.input name="password" type="password" />
-            <button type="submit">Submit</button>
-        </form>
-    );
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
+      <store.input name="email" type="email" />
+      <store.input name="password" type="password" />
+      <button type="submit">Submit</button>
+    </form>
+  );
 }
 ```
 
@@ -96,20 +96,20 @@ function Component() {
 }
 ```
 
-If you want to avoid passing the store to each input component, use `useStoreInput`. This hook provides input components that are already connected to the store.
+If you want to avoid passing the store to each input component, use `useStoreComponent`. This hook provides input components that are already connected to the store.
 
 ```tsx
-import { useStoreInput } from "dn-react-input";
+import { useStoreComponent } from "dn-react-input";
 
 function Component() {
     ...
-    const Input = useStoreInput(store);
+    const component = useStoreComponent(store);
 
     return (
         <form>
-            <Input.input name="email" type="email" />
-            <Input.input name="password" type="password" />
-            <Input.input name="rememberMe" type="checkbox" />
+            <component.input name="email" type="email" />
+            <component.input name="password" type="password" />
+            <component.input name="rememberMe" type="checkbox" />
         </form>
     );
 }
@@ -169,6 +169,28 @@ function Component() {
 }
 ```
 
+`Store.render` is a shortcut for `createRender` when you use `useFormStore`.
+
+```tsx
+function Component() {
+  const store = useFormStore({
+    email: "",
+    password: "",
+  });
+
+  return (
+    <div>
+      {store.render((state) => (
+        <p>{state.email}</p>
+      ))}
+      {store.render((state) => (
+        <p>{state.password}</p>
+      ))}
+    </div>
+  );
+}
+```
+
 ## How to subscribe to state changes?
 
 You can subscribe to state changes using the `subscribe` method of the store.
@@ -218,5 +240,46 @@ function Component() {
     };
 
     return <button onClick={updateEmail}>Update Email</button>;
+}
+```
+
+## How to create custom input components?
+
+You can create custom input components using the `useStoreInput` hook. This hook provides the necessary props to connect your custom input component to the store: `name`, `value`, `defaultValue`, `defaultChecked`, `onChange`, and `ref` which already subscribed to the store.
+
+```tsx
+import { useStoreInput } from "dn-react-input";
+
+function CustomInput({ store }: { store: Store<{ email: string }> }) {
+  const inputProps = useStoreInput(store, {
+    name: "email",
+  });
+
+  return <input {...inputProps} />;
+}
+```
+
+## How to creatre custom controller components?
+
+If your custom component is not an html input element, you can use the `useStoreController` hook. This hook provides the necessary props to connect your custom controller component to the store: `ref`, `onSubscribe`, and `onDispatch`.
+
+```tsx
+import { useStoreController } from "dn-react-input";
+
+type State = {
+  count: number;
+};
+
+function CustomController({ store }: { store: Store<State> }) {
+  const controllerProps = useStoreController<HTMLDivElement, State>(store, {
+    onSubscribe: (state, element) => {
+      element.textContent = `Count: ${state.count}`;
+    },
+    onDispatch: (state, element) => {
+      state.count += Number(element.textContent.replace("Count: ", ""));
+    },
+  });
+
+  return <div {...controllerProps} />;
 }
 ```
