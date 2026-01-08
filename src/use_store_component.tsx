@@ -46,27 +46,33 @@ export type StoreComponentPropsWithStore<
 
 export function Input<TState>({
   store,
+  getter,
+  setter,
   ...props
 }: StoreComponentPropsWithStore<HTMLInputElement, TState>) {
-  const storeProps = useStoreInputWithName(store, props);
+  const storeProps = useStoreInputWithName(store, { ...props, getter, setter });
 
   return <input {...props} {...storeProps} />;
 }
 
 export function Select<TState>({
   store,
+  getter,
+  setter,
   ...props
 }: StoreComponentPropsWithStore<HTMLSelectElement, TState>) {
-  const storeProps = useStoreInputWithName(store, props);
+  const storeProps = useStoreInputWithName(store, { ...props, getter, setter });
 
   return <select {...props} {...storeProps} />;
 }
 
 export function Textarea<TState>({
   store,
+  getter,
+  setter,
   ...props
 }: StoreComponentPropsWithStore<HTMLTextAreaElement, TState>) {
-  const storeProps = useStoreInputWithName(store, props);
+  const storeProps = useStoreInputWithName(store, { ...props, getter, setter });
 
   return <textarea {...props} {...storeProps} />;
 }
