@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type Ref } from "react";
+import { useId, useImperativeHandle, useRef, type Ref } from "react";
 import type { Store } from "./use_store";
 import { useSubscribe } from "./use_subscribe";
 
@@ -14,21 +14,9 @@ export function useStoreController<TController, TState>(
 ) {
   const ref = useRef<TController>(null);
 
+  useImperativeHandle(props.ref, () => ref.current as TController, []);
+
   const dispatchKey = useId();
-
-  useEffect(() => {
-    const element = ref.current;
-
-    if (!element) {
-      return;
-    }
-
-    if (typeof props.ref === "function") {
-      props.ref(element as TController);
-    } else if (props.ref) {
-      props.ref.current = element as TController;
-    }
-  }, []);
 
   useSubscribe(store, (state, key) => {
     if (key === dispatchKey) {
