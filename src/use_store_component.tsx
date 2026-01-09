@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, type DetailedHTMLProps } from "react";
 import type { Store } from "./use_store";
 import React from "react";
 import {
@@ -6,11 +6,29 @@ import {
   type StoreInputWithNameProps,
 } from "./use_store_input_with_name";
 
+export type StoreInputWithNameComponentProps<
+  TElement,
+  TState,
+  TName extends keyof TState | undefined,
+  TValue
+> = StoreInputWithNameProps<TElement, TState, TName, TValue> &
+  Omit<
+    DetailedHTMLProps<React.InputHTMLAttributes<TElement>, TElement>,
+    keyof StoreInputWithNameProps<TElement, TState, TName, TValue>
+  >;
+
 export function useStoreComponent<TState>(store: Store<TState>) {
   const input = useCallback(function Component<
     TName extends keyof TState | undefined,
     TValue
-  >(props: StoreInputWithNameProps<HTMLInputElement, TState, TName, TValue>) {
+  >(
+    props: StoreInputWithNameComponentProps<
+      HTMLInputElement,
+      TState,
+      TName,
+      TValue
+    >
+  ) {
     return <Input store={store} {...props} />;
   },
   []);
@@ -18,7 +36,14 @@ export function useStoreComponent<TState>(store: Store<TState>) {
   const select = useCallback(function Component<
     TName extends keyof TState | undefined,
     TValue
-  >(props: StoreInputWithNameProps<HTMLSelectElement, TState, TName, TValue>) {
+  >(
+    props: StoreInputWithNameComponentProps<
+      HTMLSelectElement,
+      TState,
+      TName,
+      TValue
+    >
+  ) {
     return <Select store={store} {...props} />;
   },
   []);
@@ -27,7 +52,12 @@ export function useStoreComponent<TState>(store: Store<TState>) {
     TName extends keyof TState | undefined,
     TValue
   >(
-    props: StoreInputWithNameProps<HTMLTextAreaElement, TState, TName, TValue>
+    props: StoreInputWithNameComponentProps<
+      HTMLTextAreaElement,
+      TState,
+      TName,
+      TValue
+    >
   ) {
     return <Textarea store={store} {...props} />;
   },
@@ -45,7 +75,7 @@ export type StoreComponentPropsWithStore<
   TState,
   TName extends keyof TState | undefined,
   TValue
-> = StoreInputWithNameProps<TElement, TState, TName, TValue> & {
+> = StoreInputWithNameComponentProps<TElement, TState, TName, TValue> & {
   store: Store<TState>;
 };
 
