@@ -28,7 +28,7 @@ export function useStoreController<TController, TState>(
     props.onSubscribe(state, ref.current);
   });
 
-  const onChange = () => {
+  const dispatch = () => {
     store.dispatch(
       (state) => {
         const element = ref.current;
@@ -45,6 +45,6 @@ export function useStoreController<TController, TState>(
 
   return {
     ref,
-    onChange,
+    dispatch,
   };
 }

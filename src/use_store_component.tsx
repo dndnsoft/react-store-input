@@ -1,36 +1,37 @@
-import {
-  useCallback,
-  type DetailedHTMLProps,
-  type InputHTMLAttributes,
-} from "react";
+import { useCallback } from "react";
 import type { Store } from "./use_store";
 import React from "react";
-import { useStoreInputWithName } from "./use_store_input_with_name";
-
-export type StoreComponentProps<TInputElement, TState> = Omit<
-  DetailedHTMLProps<InputHTMLAttributes<TInputElement>, TInputElement>,
-  "name"
-> & {
-  name?: keyof TState;
-  getter?: (state: TState) => unknown;
-  setter?: (state: TState, value: unknown) => void;
-};
+import {
+  useStoreInputWithName,
+  type StoreInputWithNameProps,
+} from "./use_store_input_with_name";
 
 export function useStoreComponent<TState>(store: Store<TState>) {
-  const input: React.FC<StoreComponentProps<HTMLInputElement, TState>> =
-    useCallback(function Component(props) {
-      return <Input store={store} {...props} />;
-    }, []);
+  const input = useCallback(function Component<
+    TName extends keyof TState | undefined,
+    TValue
+  >(props: StoreInputWithNameProps<HTMLInputElement, TState, TName, TValue>) {
+    return <Input store={store} {...props} />;
+  },
+  []);
 
-  const select: React.FC<StoreComponentProps<HTMLSelectElement, TState>> =
-    useCallback(function Component(props) {
-      return <Select store={store} {...props} />;
-    }, []);
+  const select = useCallback(function Component<
+    TName extends keyof TState | undefined,
+    TValue
+  >(props: StoreInputWithNameProps<HTMLSelectElement, TState, TName, TValue>) {
+    return <Select store={store} {...props} />;
+  },
+  []);
 
-  const textarea: React.FC<StoreComponentProps<HTMLTextAreaElement, TState>> =
-    useCallback(function Component(props) {
-      return <Textarea store={store} {...props} />;
-    }, []);
+  const textarea = useCallback(function Component<
+    TName extends keyof TState | undefined,
+    TValue
+  >(
+    props: StoreInputWithNameProps<HTMLTextAreaElement, TState, TName, TValue>
+  ) {
+    return <Textarea store={store} {...props} />;
+  },
+  []);
 
   return {
     input,
@@ -41,38 +42,70 @@ export function useStoreComponent<TState>(store: Store<TState>) {
 
 export type StoreComponentPropsWithStore<
   TElement extends HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
-  TState
-> = StoreComponentProps<TElement, TState> & { store: Store<TState> };
+  TState,
+  TName extends keyof TState | undefined,
+  TValue
+> = StoreInputWithNameProps<TElement, TState, TName, TValue> & {
+  store: Store<TState>;
+};
 
-export function Input<TState>({
+export function Input<TState, TName extends keyof TState | undefined, TValue>({
   store,
   getter,
   setter,
+  toInputValue,
+  toStateValue,
   ...props
-}: StoreComponentPropsWithStore<HTMLInputElement, TState>) {
-  const storeProps = useStoreInputWithName(store, { ...props, getter, setter });
+}: StoreComponentPropsWithStore<HTMLInputElement, TState, TName, TValue>) {
+  const storeProps = useStoreInputWithName(store, {
+    ...props,
+    getter,
+    setter,
+    toInputValue,
+    toStateValue,
+  });
 
   return <input {...props} {...storeProps} />;
 }
 
-export function Select<TState>({
+export function Select<TState, TName extends keyof TState | undefined, TValue>({
   store,
   getter,
   setter,
+  toInputValue,
+  toStateValue,
   ...props
-}: StoreComponentPropsWithStore<HTMLSelectElement, TState>) {
-  const storeProps = useStoreInputWithName(store, { ...props, getter, setter });
+}: StoreComponentPropsWithStore<HTMLSelectElement, TState, TName, TValue>) {
+  const storeProps = useStoreInputWithName(store, {
+    ...props,
+    getter,
+    setter,
+    toInputValue,
+    toStateValue,
+  });
 
   return <select {...props} {...storeProps} />;
 }
 
-export function Textarea<TState>({
+export function Textarea<
+  TState,
+  TName extends keyof TState | undefined,
+  TValue
+>({
   store,
   getter,
   setter,
+  toInputValue,
+  toStateValue,
   ...props
-}: StoreComponentPropsWithStore<HTMLTextAreaElement, TState>) {
-  const storeProps = useStoreInputWithName(store, { ...props, getter, setter });
+}: StoreComponentPropsWithStore<HTMLTextAreaElement, TState, TName, TValue>) {
+  const storeProps = useStoreInputWithName(store, {
+    ...props,
+    getter,
+    setter,
+    toInputValue,
+    toStateValue,
+  });
 
   return <textarea {...props} {...storeProps} />;
 }

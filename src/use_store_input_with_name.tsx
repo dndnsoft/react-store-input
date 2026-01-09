@@ -1,12 +1,40 @@
 import type { Store } from "./use_store";
 import { useStoreInput, type StoreInputProps } from "./use_store_input";
 
-type Props<TInputElement, TState> = Omit<
-  StoreInputProps<TInputElement, TState>,
+export type InferNameFromProps<
+  TState,
+  TName extends keyof TState | undefined,
+  TValue
+> = undefined extends TName
+  ? TValue
+  : TName extends keyof TState
+  ? TState[TName]
+  : TValue;
+
+export type StoreInputWithNameProps<
+  TInputElement,
+  TState,
+  TName extends keyof TState | undefined,
+  TValue
+> = Omit<
+  StoreInputProps<
+    TInputElement,
+    TState,
+    InferNameFromProps<TState, TName, TValue>
+  >,
   "getter" | "setter"
 > &
-  Partial<Pick<StoreInputProps<TInputElement, TState>, "getter" | "setter">> & {
-    name?: keyof TState;
+  Partial<
+    Pick<
+      StoreInputProps<
+        TInputElement,
+        TState,
+        InferNameFromProps<TState, TName, TValue>
+      >,
+      "getter" | "setter"
+    >
+  > & {
+    name?: TName;
   };
 
 export function useStoreInputWithName<
@@ -14,8 +42,13 @@ export function useStoreInputWithName<
     | HTMLInputElement
     | HTMLTextAreaElement
     | HTMLSelectElement,
-  TState
->(store: Store<TState>, props: Props<TInputElement, TState>) {
+  TState,
+  TName extends keyof TState | undefined,
+  TValue
+>(
+  store: Store<TState>,
+  props: StoreInputWithNameProps<TInputElement, TState, TName, TValue>
+) {
   const inputProps = useStoreInput(store, {
     ...props,
     getter: (state) => {
@@ -23,7 +56,7 @@ export function useStoreInputWithName<
         return props.getter(state);
       }
 
-      return state[props.name as keyof TState];
+      return state[props.name as never];
     },
     setter: (state, value) => {
       if (props.setter) {
@@ -32,7 +65,7 @@ export function useStoreInputWithName<
         return;
       }
 
-      state[props.name as keyof TState] = value as TState[keyof TState];
+      state[props.name as never] = value as never;
     },
   });
 

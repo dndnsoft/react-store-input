@@ -6,4 +6,3 @@ export * from "./use_store_input_with_name";
 export * from "./use_store_input";
 export * from "./use_store_component";
 export * from "./use_form_store";
-export * from "./serialize";

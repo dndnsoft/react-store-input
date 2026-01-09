@@ -3,7 +3,7 @@ import type { Store } from "./use_store";
 import { format } from "date-fns";
 import { useStoreController } from "./use_store_controller";
 
-export type StoreInputProps<TInputElement, TState> = {
+export type StoreInputProps<TInputElement, TState, TValue> = {
   ref?: Ref<TInputElement>;
   type?: HTMLInputTypeAttribute;
   defaultValue?: string | number | readonly string[] | undefined;
@@ -11,8 +11,10 @@ export type StoreInputProps<TInputElement, TState> = {
   defaultChecked?: boolean | undefined;
   onChange?: (event: React.ChangeEvent<TInputElement>) => void;
 } & {
-  getter: (state: TState) => unknown;
-  setter: (state: TState, value: unknown) => void;
+  getter: (state: TState) => TValue;
+  setter: (state: TState, value: TValue) => void;
+  toInputValue?: (value: TValue) => string;
+  toStateValue?: (value: string) => TValue;
 };
 
 export function useStoreInput<
@@ -20,25 +22,26 @@ export function useStoreInput<
     | HTMLInputElement
     | HTMLTextAreaElement
     | HTMLSelectElement,
-  TState
->(store: Store<TState>, props: StoreInputProps<TInputElement, TState>) {
-  const toInputValue = (value: unknown) => {
-    if (value === undefined || value === null) {
-      return "";
-    }
-
-    if (props.type === "datetime-local") {
-      if (value instanceof Date) {
-        return format(value, "yyyy-MM-dd'T'HH:mm:ss");
+  TState,
+  TValue
+>(store: Store<TState>, props: StoreInputProps<TInputElement, TState, TValue>) {
+  const toInputValue: (value: TValue) => string =
+    props.toInputValue ||
+    ((value: TValue) => {
+      if (value === undefined || value === null) {
+        return "";
       }
 
-      if (typeof value === "string") {
-        return toInputValue(new Date(value));
-      }
-    }
+      if (props.type === "datetime-local") {
+        const date = new Date(value as never);
 
-    return String(value);
-  };
+        if (!isNaN(date.getTime())) {
+          return format(date, "yyyy-MM-dd'T'HH:mm:ss");
+        }
+      }
+
+      return String(value);
+    });
 
   const getDefaultValue = () => {
     if (props.defaultValue !== undefined) {
@@ -72,19 +75,19 @@ export function useStoreInput<
     return toInputChecked(props.getter(store.state));
   };
 
-  function toStateValue(value: string) {
-    const selected = props.getter(store.state);
+  const toStateValue: (value: string) => unknown =
+    props.toStateValue ||
+    ((value: string) => {
+      if (props.type === "number" || props.type === "range") {
+        return Number(value);
+      }
 
-    if (typeof selected === "number") {
-      return Number(value);
-    }
+      if (props.type === "datetime-local") {
+        return new Date(value);
+      }
 
-    if (selected instanceof Date) {
-      return new Date(value);
-    }
-
-    return value;
-  }
+      return value;
+    });
 
   const inputProps = useStoreController(store, {
     ref: props.ref,
@@ -116,9 +119,9 @@ export function useStoreInput<
     },
     onDispatch: (state, element) => {
       if ("checked" in element && props.type === "checkbox") {
-        props.setter(state, element.checked);
+        props.setter(state, element.checked as TValue);
       } else {
-        props.setter(state, toStateValue(element.value));
+        props.setter(state, toStateValue(element.value) as TValue);
       }
     },
   });
@@ -128,7 +131,7 @@ export function useStoreInput<
     defaultValue: getDefaultValue(),
     defaultChecked: getDefaultChecked(),
     onChange: (event: React.ChangeEvent<TInputElement>) => {
-      inputProps.onChange();
+      inputProps.dispatch();
 
       props.onChange?.(event);
     },
