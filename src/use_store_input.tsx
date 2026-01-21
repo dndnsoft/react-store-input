@@ -1,4 +1,4 @@
-import { type HTMLInputTypeAttribute, type RefObject } from "react";
+import type { HTMLInputTypeAttribute, RefObject } from "react";
 import type { Store } from "./use_store";
 import { format } from "date-fns";
 import { useStoreController } from "./use_store_controller";
@@ -22,11 +22,11 @@ export function useStoreInput<
     | HTMLTextAreaElement
     | HTMLSelectElement,
   TState,
-  TValue
+  TValue,
 >(
   ref: RefObject<TInputElement | null>,
   store: Store<TState>,
-  props: StoreInputProps<TInputElement, TState, TValue>
+  props: StoreInputProps<TInputElement, TState, TValue>,
 ) {
   const toInputValue: (value: TValue) => string =
     props.toInputValue ||
